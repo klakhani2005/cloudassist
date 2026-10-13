@@ -1,0 +1,31 @@
+{"question": "Where do Lambda logs end up?", "expected": "logging.md"}
+{"question": "How long are production logs retained?", "expected": "logging.md"}
+{"question": "Is it okay to write passwords or access keys to the logs?", "expected": "logging.md"}
+{"question": "How do I search for every error for a single request ID?", "expected": "logging.md"}
+{"question": "What should I do if an access key is leaked?", "expected": "iam.md"}
+{"question": "Should Lambda functions use long-lived access keys?", "expected": "iam.md"}
+{"question": "How often are unused permissions reviewed?", "expected": "iam.md"}
+{"question": "Is MFA required for console users?", "expected": "iam.md"}
+{"question": "What encryption is used for stored documents?", "expected": "s3.md"}
+{"question": "Can a bucket be made public?", "expected": "s3.md"}
+{"question": "How can accidentally deleted documents be recovered?", "expected": "s3.md"}
+{"question": "When are old objects moved to Glacier?", "expected": "s3.md"}
+{"question": "How quickly must a Severity 2 incident be acknowledged?", "expected": "incident.md"}
+{"question": "When is the postmortem due after an outage?", "expected": "incident.md"}
+{"question": "How often are updates given during a customer-facing outage?", "expected": "incident.md"}
+{"question": "Can I change production resources manually in the console?", "expected": "deploy.md"}
+{"question": "How is traffic shifted during a production release?", "expected": "deploy.md"}
+{"question": "What happens if an alarm fires during rollout?", "expected": "deploy.md"}
+{"question": "Which file types does the ingestion pipeline accept?", "expected": "pipeline.md"}
+{"question": "What happens when the same file is uploaded twice?", "expected": "pipeline.md"}
+{"question": "Why does the ingestion function have reserved concurrency of one?", "expected": "pipeline.md"}
+{"question": "How large are document chunks?", "expected": "pipeline.md"}
+{"question": "How should resources be tagged for cost tracking?", "expected": "cost.md"}
+{"question": "When does the budget alert fire?", "expected": "cost.md"}
+{"question": "Why are idle serverless environments cheap?", "expected": "cost.md"}
+{"question": "What does the assistant do if the passages don't contain the answer?", "expected": "bedrock.md"}
+{"question": "What temperature is used for generation?", "expected": "bedrock.md"}
+{"question": "Why must answers cite sources?", "expected": "bedrock.md"}
+{"question": "What is retrieval-augmented generation?", "expected": "bedrock.md"}
+{"question": "Who won the 2018 World Cup?", "expected": null}
+{"question": "What is the office wifi password?", "expected": null}

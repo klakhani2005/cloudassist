@@ -1,0 +1,115 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: CloudAssist - serverless RAG document Q&A (API Gateway + Lambda + S3 + Bedrock)
+
+Parameters:
+  BedrockModelId:
+    Type: String
+    Default: anthropic.claude-3-haiku-20240307-v1:0
+    Description: Bedrock model ID (must be enabled in your account/region)
+
+Globals:
+  Function:
+    Runtime: python3.12
+    Timeout: 30
+    MemorySize: 512
+    CodeUri: ../
+    Environment:
+      Variables:
+        INDEX_BUCKET: !Ref DocsBucket
+        INDEX_KEY: index/chunks.json
+        USE_BEDROCK: "true"
+        BEDROCK_MODEL_ID: !Ref BedrockModelId
+
+Resources:
+  DocsBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault: {SSEAlgorithm: AES256}
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+
+  # HTTP API: API Gateway -> Lambda (FastAPI via Mangum)
+  ApiFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: app.lambda_api.handler
+      Policies:
+        # Least privilege: read/write only the index object, invoke only one model.
+        - Statement:
+            - Effect: Allow
+              Action: [s3:GetObject, s3:PutObject]
+              Resource: !Sub "arn:aws:s3:::${DocsBucket}/index/*"
+            - Effect: Allow
+              Action: [s3:ListBucket]
+              Resource: !Sub "arn:aws:s3:::${DocsBucket}"
+            - Effect: Allow
+              Action: [bedrock:InvokeModel]
+              Resource: !Sub "arn:aws:bedrock:${AWS::Region}::foundation-model/${BedrockModelId}"
+      Events:
+        Api:
+          Type: HttpApi
+          Properties: {Path: /{proxy+}, Method: ANY}
+
+  # Ingestion: S3 upload under docs/ -> Lambda -> index
+  IngestFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: app.lambda_ingest.handler
+      ReservedConcurrentExecutions: 1
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action: [s3:GetObject]
+              Resource: !Sub "arn:aws:s3:::${DocsBucket}/docs/*"
+            - Effect: Allow
+              Action: [s3:GetObject, s3:PutObject]
+              Resource: !Sub "arn:aws:s3:::${DocsBucket}/index/*"
+            - Effect: Allow
+              Action: [s3:ListBucket]
+              Resource: !Sub "arn:aws:s3:::${DocsBucket}"
+      Events:
+        Upload:
+          Type: S3
+          Properties:
+            Bucket: !Ref DocsBucket
+            Events: s3:ObjectCreated:*
+            Filter:
+              S3Key:
+                Rules: [{Name: prefix, Value: docs/}]
+
+  ApiLogs:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${ApiFunction}"
+      RetentionInDays: 14
+  IngestLogs:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${IngestFunction}"
+      RetentionInDays: 14
+
+  ApiErrorsAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: CloudAssist API Lambda errors
+      Namespace: AWS/Lambda
+      MetricName: Errors
+      Dimensions: [{Name: FunctionName, Value: !Ref ApiFunction}]
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+
+Outputs:
+  ApiUrl:
+    Value: !Sub "https://${ServerlessHttpApi}.execute-api.${AWS::Region}.amazonaws.com"
+  DocsBucketName:
+    Value: !Ref DocsBucket
